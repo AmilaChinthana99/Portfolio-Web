@@ -970,7 +970,7 @@ body.hovered .cursor-trail {
    -------------------------------------------------------------------------- */
 .services-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 2rem;
 }
 
@@ -979,6 +979,94 @@ body.hovered .cursor-trail {
   display: flex;
   flex-direction: column;
   height: 100%;
+  grid-column: span 2;
+}
+
+/* 5 Cards Balanced Layout on Desktop */
+@media (min-width: 1025px) {
+  .services-grid .service-card:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
+  .services-grid .service-card:nth-child(5) {
+    grid-column: 4 / span 2;
+  }
+}
+
+/* Tablet 5-Card Layout */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .services-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .services-grid .service-card {
+    grid-column: span 1;
+  }
+  .services-grid .service-card:nth-child(5) {
+    grid-column: span 2;
+  }
+}
+
+/* Mobile 5-Card Layout */
+@media (max-width: 768px) {
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+  .services-grid .service-card {
+    grid-column: span 1;
+  }
+}
+
+.service-icon-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.service-icon-header .service-icon-box {
+  margin-bottom: 0;
+}
+
+.iot-led-status {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iot-led-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--neon-green);
+  box-shadow: 0 0 10px var(--neon-green), 0 0 18px var(--neon-green);
+  z-index: 2;
+  animation: blinkLed 1.8s infinite ease-in-out;
+}
+
+.iot-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--neon-green);
+  box-shadow: 0 0 8px var(--neon-green);
+  opacity: 0.8;
+  animation: pulseRing 1.8s infinite ease-out;
+}
+
+@keyframes blinkLed {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.85); }
+}
+
+@keyframes pulseRing {
+  0% { width: 8px; height: 8px; opacity: 1; }
+  100% { width: 28px; height: 28px; opacity: 0; }
 }
 
 .service-icon-box {
