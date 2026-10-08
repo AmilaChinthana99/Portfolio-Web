@@ -2,6 +2,13 @@
    AMILA CHINTHANA - FUTURISTIC NEON PORTFOLIO MAIN JAVASCRIPT
    ========================================================================== */
 
+// EmailJS Configuration Credentials
+const EMAILJS_CONFIG = {
+  serviceId: 'service_jn58snh',
+  templateId: 'template_2mcn2p2',
+  publicKey: 'JtTQ2J0wrk7d8k2V6'
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize all interactive modules
   initPreloader();
@@ -427,44 +434,208 @@ function initSkillBars() {
 }
 
 /* --------------------------------------------------------------------------
-   12. NETLIFY CONTACT FORM AJAX HANDLER
+   12. EMAILJS CONTACT FORM HANDLER & VALIDATION
    -------------------------------------------------------------------------- */
 function initContactForm() {
-  const form = document.querySelector('.contact-form');
-  const formStatus = document.querySelector('.form-status');
-  if (!form || !formStatus) return;
+  const form = document.getElementById('contact-form');
+  if (!form) return;
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
+  // Initialize EmailJS Browser SDK
+  if (typeof emailjs !== 'undefined' && EMAILJS_CONFIG.publicKey) {
+    emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
+  }
 
-    const formData = new FormData(form);
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const originalBtnText = submitBtn.innerHTML;
+  const submitBtn = document.getElementById('contact-submit-btn');
+  const toastContainer = document.getElementById('toast-container');
+  const replyToInput = document.getElementById('email');
+  const fromEmailInput = document.getElementById('from_email');
+  const timeInput = document.getElementById('submission_time');
 
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = 'Sending...';
+  // Sync reply_to value to hidden from_email field as user types
+  if (replyToInput && fromEmailInput) {
+    replyToInput.addEventListener('input', () => {
+      fromEmailInput.value = replyToInput.value.trim();
+    });
+  }
 
-    fetch('/', {
-      method: 'POST',
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams(formData).toString()
-    })
-    .then(() => {
-      formStatus.className = 'form-status success';
-      formStatus.textContent = '⚡ Thank you! Your message has been transmitted successfully. I will get back to you soon.';
-      form.reset();
-    })
-    .catch((err) => {
-      console.error('Form submit error:', err);
-      formStatus.className = 'form-status error';
-      formStatus.textContent = '❌ Oops! There was an issue sending your message. Please try emailing directly to achinthanaa@gmail.com.';
-    })
-    .finally(() => {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalBtnText;
-      setTimeout(() => {
-        formStatus.className = 'form-status';
-      }, 7000);
+  // Clear field error state on input
+  const formInputs = form.querySelectorAll('.form-input, .form-textarea');
+  formInputs.forEach(input => {
+    input.addEventListener('input', () => {
+      clearFieldError(input);
     });
   });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // 1. Honeypot Spam Protection Check
+    const honeypot = form.querySelector('[name="website_honeypot"]');
+    if (honeypot && honeypot.value.trim() !== '') {
+      console.warn('Silent stop: Honeypot field filled (bot detected).');
+      return; // Silently stop submission
+    }
+
+    // 2. Client-Side Field Validation
+    clearAllErrors();
+    let isValid = true;
+
+    const nameInput = form.querySelector('[name="from_name"]');
+    const subjectInput = form.querySelector('[name="subject"]');
+    const messageInput = form.querySelector('[name="message"]');
+
+    if (!nameInput.value.trim()) {
+      showFieldError(nameInput, 'Please enter your name.');
+      isValid = false;
+    }
+
+    const emailVal = replyToInput ? replyToInput.value.trim() : '';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailVal) {
+      showFieldError(replyToInput, 'Please enter your email address.');
+      isValid = false;
+    } else if (!emailRegex.test(emailVal)) {
+      showFieldError(replyToInput, 'Please enter a valid email address (e.g. name@example.com).');
+      isValid = false;
+    }
+
+    if (!subjectInput.value.trim()) {
+      showFieldError(subjectInput, 'Please enter a subject.');
+      isValid = false;
+    }
+
+    const messageVal = messageInput ? messageInput.value.trim() : '';
+    if (!messageVal) {
+      showFieldError(messageInput, 'Please enter your message.');
+      isValid = false;
+    } else if (messageVal.length < 10) {
+      showFieldError(messageInput, 'Message must be at least 10 characters long.');
+      isValid = false;
+    }
+
+    if (!isValid) return;
+
+    // 3. Rate-Limiting Check (30 seconds cooldown window)
+    const lastSentTimestamp = sessionStorage.getItem('amila_portfolio_last_sent');
+    const currentTime = Date.now();
+    if (lastSentTimestamp && currentTime - parseInt(lastSentTimestamp, 10) < 30000) {
+      const waitSeconds = Math.ceil((30000 - (currentTime - parseInt(lastSentTimestamp, 10))) / 1000);
+      showToast(`Please wait ${waitSeconds} seconds before submitting another message.`, 'error');
+      return;
+    }
+
+    // Populate hidden timestamp & sync email fields
+    if (timeInput) timeInput.value = new Date().toLocaleString();
+    if (fromEmailInput && replyToInput) fromEmailInput.value = replyToInput.value.trim();
+
+    // 4. Loading State UI
+    setLoadingState(true);
+
+    try {
+      if (typeof emailjs === 'undefined') {
+        throw new Error('EmailJS SDK failed to load.');
+      }
+
+      const response = await emailjs.sendForm(
+        EMAILJS_CONFIG.serviceId,
+        EMAILJS_CONFIG.templateId,
+        form
+      );
+
+      console.log('EmailJS Success Response:', response);
+
+      // Record rate limit timestamp
+      sessionStorage.setItem('amila_portfolio_last_sent', Date.now().toString());
+
+      showToast('⚡ Thank you! Your message has been sent. I\'ll get back to you soon.', 'success');
+      form.reset();
+      clearAllErrors();
+    } catch (err) {
+      console.error('EmailJS Submission Error:', err);
+      showToast('❌ Oops! Something went wrong. Please try again or email me directly at achinthanaa@gmail.com.', 'error');
+    } finally {
+      setLoadingState(false);
+    }
+  });
+
+  function showFieldError(field, message) {
+    if (!field) return;
+    field.classList.add('invalid');
+    const errorSpan = document.getElementById(`error-${field.name}`);
+    if (errorSpan) {
+      errorSpan.textContent = message;
+      errorSpan.classList.add('visible');
+    }
+  }
+
+  function clearFieldError(field) {
+    if (!field) return;
+    field.classList.remove('invalid');
+    const errorSpan = document.getElementById(`error-${field.name}`);
+    if (errorSpan) {
+      errorSpan.textContent = '';
+      errorSpan.classList.remove('visible');
+    }
+  }
+
+  function clearAllErrors() {
+    form.querySelectorAll('.form-input, .form-textarea').forEach(f => f.classList.remove('invalid'));
+    form.querySelectorAll('.field-error-msg').forEach(span => {
+      span.textContent = '';
+      span.classList.remove('visible');
+    });
+  }
+
+  function setLoadingState(isLoading) {
+    if (!submitBtn) return;
+    submitBtn.disabled = isLoading;
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnIcon = submitBtn.querySelector('.btn-icon');
+
+    if (isLoading) {
+      if (btnText) btnText.textContent = 'Sending...';
+      if (btnIcon) btnIcon.style.display = 'none';
+      let spinner = submitBtn.querySelector('.btn-spinner');
+      if (!spinner) {
+        spinner = document.createElement('span');
+        spinner.className = 'btn-spinner';
+        submitBtn.appendChild(spinner);
+      }
+    } else {
+      if (btnText) btnText.textContent = 'Send Message';
+      if (btnIcon) btnIcon.style.display = 'inline-block';
+      const spinner = submitBtn.querySelector('.btn-spinner');
+      if (spinner) spinner.remove();
+    }
+  }
+
+  function showToast(message, type) {
+    if (!toastContainer) return;
+    toastContainer.innerHTML = ''; // Clear previous toast
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = message;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close-btn';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.setAttribute('aria-label', 'Close notification');
+    closeBtn.onclick = () => toast.remove();
+
+    toast.appendChild(messageSpan);
+    toast.appendChild(closeBtn);
+    toastContainer.appendChild(toast);
+
+    // Auto dismiss toast after 5 seconds
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.4s ease';
+        setTimeout(() => toast.remove(), 400);
+      }
+    }, 5000);
+  }
 }

@@ -36,46 +36,27 @@ Portfolio Web/
 
 ---
 
-## 📝 Updating Your CV
+## 📧 EmailJS Setup Guide
 
-To upload your full Curriculum Vitae:
-1. Export your CV as a PDF file named `Amila_Chinthana_CV.pdf`.
-2. Replace the file at `assets/Amila_Chinthana_CV.pdf`.
+The contact form is configured to send emails using **EmailJS** (`service_jn58snh`). To ensure proper delivery to your inbox:
 
----
+1. **EmailJS Credentials (in `js/main.js`):**
+   - `serviceId`: `service_jn58snh`
+   - `templateId`: `template_2mcn2p2`
+   - `publicKey`: `JtTQ2J0wrk7d8k2V6`
 
-## 🚀 Local Running
+2. **Required Template Variables:**
+   Ensure your EmailJS template (`template_2mcn2p2`) uses the following variable tags in the template editor:
+   - `{{from_name}}` – Sender's Name
+   - `{{reply_to}}` – Sender's Email
+   - `{{subject}}` – Inquiry Subject
+   - `{{message}}` – Message Body Content
+   - `{{time}}` – Submission Timestamp
 
-Since this project relies on vanilla HTML/CSS/JS with zero build steps, you can run it directly:
+3. **EmailJS Dashboard Settings:**
+   - **To Email:** `achinthanaa@gmail.com`
+   - **Reply To:** `{{reply_to}}`
 
-Using Node `serve` or VS Code Live Server:
-```bash
-npx serve .
-```
-Open `http://localhost:3000` in your browser.
+4. **Domain Restriction (Security):**
+   - If domain restriction is enabled in your EmailJS dashboard under **Account > Security**, make sure to add your live domain (e.g., `https://amilachinthana.netlify.app` or `http://localhost:8080`) to the **Allowed Origins** list.
 
----
-
-## ☁️ Deployment to Netlify
-
-### Method A: Netlify CLI (Automated)
-```bash
-npm install -g netlify-cli
-netlify login
-netlify deploy --prod --dir=.
-```
-
-### Method B: Netlify Drag-and-Drop (Manual)
-1. Go to [app.netlify.com/drop](https://app.netlify.com/drop).
-2. Drag and drop the root `Portfolio Web` folder directly into the browser upload box.
-3. Once deployed, set your custom site name to `amilachinthana` under **Site Settings > Change Site Name**.
-
-### Method C: GitHub Continuous Deployment
-1. Initialize git and commit:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial portfolio commit"
-   ```
-2. Push to your GitHub repo (`AmilaChinthana99/Portfolio-Web`).
-3. Connect your repo on Netlify dashboard. Netlify will automatically build and deploy every push!
